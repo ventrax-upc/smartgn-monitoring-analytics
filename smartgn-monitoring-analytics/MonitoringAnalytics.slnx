@@ -1,0 +1,4 @@
+<Solution>
+  <Project Path="com.ventrax.monitoring/com.ventrax.monitoring.csproj" />
+  <Project Path="com.ventrax.monitoring.Tests/com.ventrax.monitoring.Tests.csproj" />
+</Solution>

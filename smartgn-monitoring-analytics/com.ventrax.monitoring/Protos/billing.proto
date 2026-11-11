@@ -1,0 +1,24 @@
+syntax = "proto3";
+
+// Contrato privado que Payments & Billing debe exponer para Monitoring & Analytics
+// (informe: gRPC SubscriptionEntitlementService.GetProEntitlement).
+// Billing todavía no publica este servidor gRPC: este archivo es el contrato acordado
+// y debe copiarse tal cual en el repositorio de Billing.
+option csharp_namespace = "Com.Ventrax.Monitoring.Infrastructure.Clients.Billing";
+
+package smartgn.billing.v1;
+
+service SubscriptionEntitlementService {
+  // ¿La cuenta principal tiene cobertura Pro vigente en este instante?
+  rpc GetProEntitlement (ProEntitlementRequest) returns (ProEntitlementResponse);
+}
+
+message ProEntitlementRequest {
+  string account_id = 1;
+}
+
+message ProEntitlementResponse {
+  bool pro_active = 1;
+  // Fin del periodo pagado (ISO 8601); vacío si no es Pro
+  string valid_until = 2;
+}
