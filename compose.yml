@@ -1,0 +1,44 @@
+name: smartgn-monitoring
+services:
+  db:
+    image: postgres:17.6
+    environment:
+      POSTGRES_DB: smartgn_monitoring
+      POSTGRES_USER: smartgn_monitoring
+      POSTGRES_PASSWORD: $DB_PASSWORD
+    ports: ["127.0.0.1:15436:5432"]
+    volumes: [monitoring-postgres-data:/var/lib/postgresql/data]
+    healthcheck:
+      test: [CMD-SHELL, "pg_isready -U smartgn_monitoring -d smartgn_monitoring"]
+      interval: 3s
+      timeout: 3s
+      retries: 30
+  redis:
+    image: redis:7-alpine
+    ports: ["127.0.0.1:16386:6379"]
+    healthcheck:
+      test: [CMD, redis-cli, ping]
+      interval: 3s
+      timeout: 3s
+      retries: 20
+  monitoring:
+    build: .
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      ASPNETCORE_URLS: http://+:8084
+      ConnectionStrings__DefaultConnection: Host=db;Database=smartgn_monitoring;Username=smartgn_monitoring;Password=$DB_PASSWORD
+      ConnectionStrings__RedisConnection: redis:6379
+      JWT_SECRET: $JWT_SECRET
+      INTERNAL_SERVICE_TOKEN: $INTERNAL_SERVICE_TOKEN
+    ports: ["127.0.0.1:8084:8084"]
+    depends_on:
+      db: {condition: service_healthy}
+      redis: {condition: service_healthy}
+    healthcheck:
+      test: [CMD, bash, /app/health.sh]
+      interval: 10s
+      timeout: 5s
+      start_period: 30s
+      retries: 10
+volumes:
+  monitoring-postgres-data:
