@@ -1,0 +1,10 @@
+{
+  "service": "smartgn-monitoring-analytics",
+  "version": 1,
+  "records": [
+    {
+      "alias": "demo-analytics-window",
+      "reportDays": 1
+    }
+  ]
+}

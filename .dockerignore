@@ -1,0 +1,12 @@
+.git/
+.env
+.local/
+docs/
+scripts/
+tests/
+*.slnx
+README.md
+**/bin/
+**/obj/
+**/.vs/
+**/TestResults/

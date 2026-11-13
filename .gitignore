@@ -1,0 +1,23 @@
+## .NET build output
+bin/
+obj/
+out/
+**/bin/
+**/obj/
+*.user
+*.suo
+.vs/
+.idea/
+
+## Local configuration and logs
+.env
+.local/
+
+## Test results
+TestResults/
+**/TestResults/
+*.trx
+coverage*
+
+## Git metadata
+.git/

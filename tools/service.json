@@ -1,0 +1,39 @@
+{
+  "service": "smartgn-monitoring-analytics",
+  "title": "SmartGN - Monitoring & Analytics",
+  "version": "v1",
+  "default_openapi_url": "http://127.0.0.1:8084/v3/api-docs",
+  "tags": {
+    "Analytics": "Authorized live readings, consumption history and Pro reports."
+  },
+  "security_schemes": ["bearerAuth", "serviceAuth"],
+  "operations": [
+    {
+      "method": "GET",
+      "path": "/api/v1/analytics/live",
+      "tag": "Analytics",
+      "summary": "Latest reading of an authorized meter",
+      "description": "Returns the most recent reading (volume, pressure, gas presence, valve state) and its freshness. Requires VIEW_CONSUMPTION on the meter. Not cached.",
+      "success": 200,
+      "security": "bearerAuth"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/analytics/consumption",
+      "tag": "Analytics",
+      "summary": "Consolidated consumption of authorized meters",
+      "description": "Consumption (difference of cumulative readings), estimated cost and simple monthly estimate per meter. Defaults to the current month. Cache-Aside with Redis (header X-Cache: HIT or MISS).",
+      "success": 200,
+      "security": "bearerAuth"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/analytics/reports",
+      "tag": "Analytics",
+      "summary": "Generate consolidated consumption report (Pro)",
+      "description": "Requires USE_REPORTS on every meter and an active Pro subscription confirmed by Billing over gRPC. The report is stored in PostgreSQL and cached in Redis (header X-Cache).",
+      "success": 200,
+      "security": "bearerAuth"
+    }
+  ]
+}
