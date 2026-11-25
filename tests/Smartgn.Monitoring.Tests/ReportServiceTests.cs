@@ -30,6 +30,20 @@ public class ReportServiceTests
     }
 
     [Fact]
+    public async Task DelegatedReport_UsesPrincipalsTelemetryAndEntitlement()
+    {
+        var host = new TestHost();
+        var principal = Guid.NewGuid();
+        host.Authorization.PrincipalId = principal;
+
+        await host.Reports().GenerateReportAsync(Account, [MeterA], From, To);
+
+        Assert.Equal(principal, host.Billing.LastAccount);
+        Assert.Equal(principal, host.Telemetry.LastAccount);
+        Assert.Contains(host.Authorization.Checks, check => check.Account == Account && check.Function == MeterFunctions.UseReports);
+    }
+
+    [Fact]
     public async Task SecondIdenticalReport_IsServedFromCache_WithoutSavingAgain()
     {
         var host = new TestHost();
