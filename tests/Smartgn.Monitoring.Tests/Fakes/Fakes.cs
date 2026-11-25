@@ -20,6 +20,7 @@ public sealed class FixedClock(DateTimeOffset now) : TimeProvider
 public sealed class FakeTelemetry : ITelemetryGrpcClient
 {
     public List<TelemetryReadingDto> Readings { get; } = [];
+    public Guid LastAccount { get; private set; }
     public int BatchCalls { get; private set; }
     public int LatestCalls { get; private set; }
 
@@ -29,6 +30,7 @@ public sealed class FakeTelemetry : ITelemetryGrpcClient
     public Task<IReadOnlyList<TelemetryReadingDto>> GetReadingsBatchAsync(
         Guid accountId, IReadOnlyCollection<Guid> meterIds, DateTimeOffset from, DateTimeOffset to, CancellationToken ct = default)
     {
+        LastAccount = accountId;
         BatchCalls++;
         IReadOnlyList<TelemetryReadingDto> result = Readings
             .Where(r => meterIds.Contains(r.MeterId) && r.MeasuredAt >= from && r.MeasuredAt < to)
@@ -39,6 +41,7 @@ public sealed class FakeTelemetry : ITelemetryGrpcClient
     public Task<IReadOnlyList<TelemetryReadingDto>> GetLatestReadingsAsync(
         Guid accountId, IReadOnlyCollection<Guid> meterIds, CancellationToken ct = default)
     {
+        LastAccount = accountId;
         LatestCalls++;
         IReadOnlyList<TelemetryReadingDto> result = Readings
             .Where(r => meterIds.Contains(r.MeterId))
@@ -51,18 +54,25 @@ public sealed class FakeTelemetry : ITelemetryGrpcClient
 
 public sealed class FakeBilling : IBillingGrpcClient
 {
+    public Guid LastAccount { get; private set; }
     public bool IsPro { get; set; } = true;
     public bool Unavailable { get; set; }
 
-    public Task<bool> HasProEntitlementAsync(Guid accountId, CancellationToken ct = default) =>
-        Unavailable
+    public Task<bool> HasProEntitlementAsync(Guid accountId, CancellationToken ct = default)
+    {
+        LastAccount = accountId;
+        return Unavailable
             ? throw new DependencyUnavailableException("Payments & Billing")
             : Task.FromResult(IsPro);
+    }
 }
 
 public sealed class FakeAuthorization : IMeterAuthorizationClient
 {
     public HashSet<Guid> Denied { get; } = [];
+    public Guid? PrincipalId { get; set; }
+    public Task<Guid> ResolvePrincipalAsync(Guid accountId, CancellationToken ct = default) =>
+        Task.FromResult(PrincipalId ?? accountId);
     public bool Unavailable { get; set; }
     public List<(Guid Account, Guid Meter, string Function)> Checks { get; } = [];
 

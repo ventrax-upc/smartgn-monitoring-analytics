@@ -31,6 +31,22 @@ public class ConsumptionQueryServiceTests
     }
 
     [Fact]
+    public async Task DelegatedConsumption_AuthorizesDelegateAndQueriesPrincipal()
+    {
+        var host = new TestHost();
+        var principal = Guid.NewGuid();
+        host.Authorization.PrincipalId = principal;
+        var service = host.Queries();
+
+        await service.GetLiveAsync(Account, MeterA);
+        Assert.Equal(principal, host.Telemetry.LastAccount);
+
+        await service.GetConsumptionAsync(Account, [MeterA], October, October.AddDays(3));
+        Assert.Equal(principal, host.Telemetry.LastAccount);
+        Assert.All(host.Authorization.Checks, check => Assert.Equal(Account, check.Account));
+    }
+
+    [Fact]
     public async Task Live_WithoutReadings_ReportsNoData()
     {
         var host = new TestHost();

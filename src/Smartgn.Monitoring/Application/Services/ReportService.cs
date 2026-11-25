@@ -10,7 +10,7 @@ namespace Com.Ventrax.Monitoring.Application.Services;
 // Report Service: reportes consolidados de consumo y gasto (US18, función Pro).
 public class ReportService
 {
-    private const string ReportCacheKind = "report";
+    private const string ReportCacheKind = "report-v2";
 
     private readonly IMonitoringRepository _repository;
     private readonly ITelemetryGrpcClient _telemetryClient;
@@ -56,8 +56,8 @@ public class ReportService
         // 1. Permisos por medidor (IAM) y beneficio Pro (Billing gRPC).
         //    Van ANTES de la caché: la autorización nunca depende solo de Redis.
         //    Si Billing no responde, el cliente lanza DependencyUnavailableException (503): no se asume Free.
-        await _guard.EnsureAllowedAsync(accountId, meters, MeterFunctions.UseReports, ct);
-        if (!await _billingClient.HasProEntitlementAsync(accountId, ct))
+        var principalId = await _guard.ResolveAuthorizedPrincipalAsync(accountId, meters, MeterFunctions.UseReports, ct);
+        if (!await _billingClient.HasProEntitlementAsync(principalId, ct))
         {
             throw new ProSubscriptionRequiredException();
         }
@@ -71,7 +71,7 @@ public class ReportService
         }
 
         // 3. Lecturas validadas desde Telemetry (una consulta en bloque) y agregación
-        var readings = await _telemetryClient.GetReadingsBatchAsync(accountId, meters, from, to, ct);
+        var readings = await _telemetryClient.GetReadingsBatchAsync(principalId, meters, from, to, ct);
         var rows = _aggregation.Aggregate(meters, readings, from, to);
 
         var report = new ConsumptionReport(accountId);

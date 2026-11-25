@@ -34,6 +34,7 @@ public interface IBillingGrpcClient
 public interface IMeterAuthorizationClient
 {
     Task<bool> IsAllowedAsync(Guid accountId, Guid meterId, string function, CancellationToken ct = default);
+    Task<Guid> ResolvePrincipalAsync(Guid accountId, CancellationToken ct = default);
 }
 
 // Puerto de caché (Cache-Aside). La implementación usa Redis; nunca reemplaza la autorización ni PostgreSQL.

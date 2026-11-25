@@ -66,6 +66,51 @@ public class IamMeterAuthorizationClient : IMeterAuthorizationClient
         }
     }
 
+    public async Task<Guid> ResolvePrincipalAsync(Guid accountId, CancellationToken ct = default)
+    {
+        using var request = new HttpRequestMessage(HttpMethod.Get, $"/internal/v1/accounts/{accountId}");
+        if (!string.IsNullOrEmpty(_integration.InternalServiceToken))
+        {
+            request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", _integration.InternalServiceToken);
+        }
+
+        try
+        {
+            using var response = await _http.SendAsync(request, ct);
+            if (!response.IsSuccessStatusCode)
+            {
+                throw new DependencyUnavailableException(Dependency);
+            }
+
+            var account = await response.Content.ReadFromJsonAsync<AccountContext>(ct);
+            if (account is null || account.AccountId != accountId || account.Status != "ACTIVE")
+            {
+                throw new DependencyUnavailableException(Dependency);
+            }
+
+            return account.AccountKind switch
+            {
+                "PRINCIPAL" => accountId,
+                "DELEGATED" when account.PrincipalAccountId is Guid principal && principal != Guid.Empty => principal,
+                _ => throw new DependencyUnavailableException(Dependency),
+            };
+        }
+        catch (HttpRequestException ex)
+        {
+            throw new DependencyUnavailableException(Dependency, ex);
+        }
+        catch (TaskCanceledException ex) when (!ct.IsCancellationRequested)
+        {
+            throw new DependencyUnavailableException(Dependency, ex);
+        }
+        catch (System.Text.Json.JsonException ex)
+        {
+            throw new DependencyUnavailableException(Dependency, ex);
+        }
+    }
+
+    private sealed record AccountContext(Guid AccountId, string AccountKind, string Status, Guid? PrincipalAccountId);
+
     private sealed record CheckRequest(Guid AccountId, Guid MeterId, string Function, bool RequiresPro);
 
     private sealed record CheckResponse(bool Allowed);

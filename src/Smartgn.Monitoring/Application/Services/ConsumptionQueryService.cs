@@ -7,7 +7,7 @@ namespace Com.Ventrax.Monitoring.Application.Services;
 // Consultas de consumo: lectura en vivo y consumo consolidado de varios medidores.
 public class ConsumptionQueryService
 {
-    private const string ConsumptionCacheKind = "consumption";
+    private const string ConsumptionCacheKind = "consumption-v2";
 
     private readonly MeterAccessGuard _guard;
     private readonly ITelemetryGrpcClient _telemetry;
@@ -36,9 +36,9 @@ public class ConsumptionQueryService
     public async Task<LiveReadingDto> GetLiveAsync(Guid accountId, Guid meterId, CancellationToken ct = default)
     {
         var meters = AnalyticsQueryRules.ValidateMeters([meterId]);
-        await _guard.EnsureAllowedAsync(accountId, meters, MeterFunctions.ViewConsumption, ct);
+        var principalId = await _guard.ResolveAuthorizedPrincipalAsync(accountId, meters, MeterFunctions.ViewConsumption, ct);
 
-        var latest = (await _telemetry.GetLatestReadingsAsync(accountId, meters, ct))
+        var latest = (await _telemetry.GetLatestReadingsAsync(principalId, meters, ct))
             .Where(r => r.MeterId == meterId)
             .OrderByDescending(r => r.MeasuredAt)
             .FirstOrDefault();
@@ -77,7 +77,7 @@ public class ConsumptionQueryService
         var function = periodTo < now - TimeSpan.FromMinutes(_cacheOptions.RecentWindowMinutes)
             ? MeterFunctions.ViewHistory
             : MeterFunctions.ViewConsumption;
-        await _guard.EnsureAllowedAsync(accountId, meters, function, ct);
+        var principalId = await _guard.ResolveAuthorizedPrincipalAsync(accountId, meters, function, ct);
 
         var key = AnalyticsCacheKey.For(ConsumptionCacheKind, accountId, meters, periodFrom, periodTo);
         var cached = await _cache.GetAsync<ConsumptionResponseDto>(key, ct);
@@ -86,7 +86,7 @@ public class ConsumptionQueryService
             return new CachedResult<ConsumptionResponseDto>(cached, FromCache: true);
         }
 
-        var readings = await _telemetry.GetReadingsBatchAsync(accountId, meters, periodFrom, periodTo, ct);
+        var readings = await _telemetry.GetReadingsBatchAsync(principalId, meters, periodFrom, periodTo, ct);
         var rows = _aggregation.Aggregate(meters, readings, periodFrom, periodTo);
 
         var response = new ConsumptionResponseDto(

@@ -17,6 +17,13 @@ public class MeterAccessGuard
         _authorization = authorization;
     }
 
+    public async Task<Guid> ResolveAuthorizedPrincipalAsync(
+        Guid accountId, IReadOnlyCollection<Guid> meterIds, string function, CancellationToken ct = default)
+    {
+        await EnsureAllowedAsync(accountId, meterIds, function, ct);
+        return await _authorization.ResolvePrincipalAsync(accountId, ct);
+    }
+
     public async Task EnsureAllowedAsync(
         Guid accountId, IReadOnlyCollection<Guid> meterIds, string function, CancellationToken ct = default)
     {
