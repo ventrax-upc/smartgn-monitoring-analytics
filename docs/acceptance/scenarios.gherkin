@@ -1,0 +1,18 @@
+# Source: Ventrax AV4 report. Acceptance specification; execution is verified separately.
+Feature: Consumption monitoring and Pro reports
+
+  Scenario: Return consumption for an authorized meter
+    Given a user is authenticated and has permission to view a meter
+    And the meter has cumulative readings in the requested period
+    When the user requests the consumption summary
+    Then the service returns the calculated consumption and estimated cost
+
+  Scenario: Deny a Pro report without an active entitlement
+    Given an authenticated user has no active Pro subscription
+    When the user requests a consolidated report
+    Then the service returns a forbidden response
+
+  Scenario: Reuse a cached report
+    Given a Pro report has already been generated for the same account and period
+    When the user submits the same query
+    Then the service may return the report from Redis without storing a duplicate
